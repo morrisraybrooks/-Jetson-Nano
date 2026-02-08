@@ -266,20 +266,23 @@ Security research:
 
 ---
 
-## Security & Counter-Security Lab
+## 🔴 Red Team / Offensive Security Lab
 
-This setup doubles as a personal cybersecurity research lab. The Jetson runs uncensored models that won't refuse security-related requests, and Agent Zero already has a red team operative system prompt. The goal is to experiment freely with both offensive and defensive security.
+This setup doubles as a personal offensive security research lab. The Jetson runs uncensored models that won't refuse security-related requests, and Agent Zero already has a red team operative system prompt. No guardrails, no refusals, no lectures. Your hardware, your rules.
 
-### 🔴 Offensive Security (Red Team)
+### AI-Assisted Penetration Testing
 
-**AI-Assisted Penetration Testing:**
 - Agent Zero + Dolphin Mistral = unrestricted pen test assistant
 - Generate exploit code, shellcode, payloads without refusals
 - Automate recon: "Scan this network and find every open service"
 - Write custom Nmap scripts, Metasploit modules, Burp extensions
 - Social engineering template generation (phishing emails, pretexting scripts)
+- AV/EDR evasion techniques and payload obfuscation
+- Reverse engineering assistance (binary analysis, decompilation guidance)
+- Wireless attack automation (WPA cracking, rogue AP deployment)
 
-**Tools to Install on Jetson/ODROID:**
+### Offensive Tools to Install on Jetson/ODROID
+
 - [ ] Nmap (network scanning & enumeration)
 - [ ] Metasploit Framework (exploitation)
 - [ ] Burp Suite Community (web app testing)
@@ -293,115 +296,46 @@ This setup doubles as a personal cybersecurity research lab. The Jetson runs unc
 - [ ] Gobuster / ffuf (directory & DNS brute forcing)
 - [ ] Wireshark / tcpdump (packet analysis)
 - [ ] Scapy (custom packet crafting via Python)
-- [ ] Pwntools (CTF & exploit development framework)
+- [ ] Pwntools (exploit development framework)
+- [ ] BeEF (browser exploitation framework)
+- [ ] Cobalt Strike / Sliver (C2 frameworks)
+- [ ] Ghidra (reverse engineering)
+- [ ] Wifiphisher (wireless social engineering)
+- [ ] CrackMapExec (Active Directory attacks)
+- [ ] BloodHound (AD attack path mapping)
 
-**AI-Powered Attack Workflows:**
+### AI-Powered Attack Workflows
+
 ```
 1. "Agent Zero, scan 192.168.12.0/24 and enumerate all services"
-   → Runs Nmap, parses output, identifies targets
+   → Runs Nmap, parses output, identifies targets, suggests attack vectors
 
 2. "Find vulnerabilities in the web app at 192.168.12.50:8080"
-   → Runs Nikto + SQLmap + Gobuster, reports findings
+   → Runs Nikto + SQLmap + Gobuster, chains findings into exploit path
 
 3. "Write a Python reverse shell that evades Windows Defender"
-   → Dolphin Mistral generates it without refusal
+   → Dolphin Mistral generates it without refusal, suggests obfuscation
 
 4. "Crack these hashes from the database dump"
-   → Runs John/Hashcat, reports results
+   → Identifies hash type, runs John/Hashcat with optimal rules
 
 5. "Generate a spear-phishing email targeting an IT admin"
    → Creates realistic template with payload suggestions
+
+6. "Build me a custom C2 implant in Python"
+   → Writes full agent with encrypted comms, persistence, exfil
+
+7. "Analyze this malware sample and explain what it does"
+   → Disassembles, identifies techniques, maps to MITRE ATT&CK
+
+8. "Crack this WPA2 handshake"
+   → Runs Aircrack-ng with wordlists, suggests hashcat rules
 ```
 
-### 🔵 Defensive Security (Blue Team)
-
-**AI-Assisted Defense & Hardening:**
-- Analyze logs for indicators of compromise (IOCs)
-- Write firewall rules (iptables/nftables/ufw)
-- Generate IDS/IPS signatures (Snort/Suricata rules)
-- Audit system configurations for weaknesses
-- Automate security patching scripts
-- Review code for vulnerabilities (SAST-style analysis)
-
-**Tools to Install:**
-- [ ] Suricata / Snort (intrusion detection)
-- [ ] OSSEC / Wazuh (host-based IDS)
-- [ ] Fail2ban (brute force protection)
-- [ ] ClamAV (malware scanning)
-- [ ] Lynis (system security auditing)
-- [ ] OpenVAS / Greenbone (vulnerability scanning)
-- [ ] YARA (malware pattern matching)
-
-**AI-Powered Defense Workflows:**
-```
-1. "Analyze /var/log/auth.log for brute force attempts"
-   → Parses logs, identifies IPs, generates Fail2ban rules
-
-2. "Harden this Ubuntu server - check everything"
-   → Runs Lynis, reviews output, applies fixes
-
-3. "Write Suricata rules to detect this attack pattern"
-   → Generates custom IDS signatures
-
-4. "Review this Python web app for security vulnerabilities"
-   → Reads code over NFS, identifies SQLi/XSS/SSRF issues
-
-5. "Set up a honeypot to catch network intruders"
-   → Deploys and configures a basic honeypot service
-```
-
-### 🟣 Purple Team (Attack + Defend Cycle)
-
-The real power is running both sides:
-
-```
-┌─────────────────────────────────────────────────┐
-│              PURPLE TEAM CYCLE                  │
-│                                                 │
-│   1. ATTACK: Find a vulnerability               │
-│      ↓                                          │
-│   2. DOCUMENT: Log the exploit chain            │
-│      ↓                                          │
-│   3. DEFEND: Write detection rules              │
-│      ↓                                          │
-│   4. VERIFY: Re-attack to test the defense      │
-│      ↓                                          │
-│   5. HARDEN: Patch the vulnerability            │
-│      ↓                                          │
-│   6. REPEAT: Find the next weakness             │
-└─────────────────────────────────────────────────┘
-```
-
-**Example Purple Team Exercise:**
-- Attack your own Home Assistant (100.105.165.29) from the Jetson
-- Find misconfigurations, weak APIs, exposed services
-- Write Suricata rules to detect the attack
-- Harden Home Assistant based on findings
-- Re-test to verify the fix works
-
-### 🧪 CTF & Training
-
-- [ ] Set up VulnHub/HackTheBox VMs on ODROID (32GB RAM = plenty)
-- [ ] Use Agent Zero to assist with CTF challenges
-- [ ] Practice OSCP-style boxes with AI guidance
-- [ ] Study CVEs: "Explain CVE-2024-XXXX and write a PoC"
-- [ ] Reverse engineering with Ghidra (ODROID) + AI analysis (Jetson)
-
-### 🔑 Security Lab Network Isolation
-
-**IMPORTANT: Keep lab traffic isolated from production:**
-- [ ] Use the direct ethernet link (10.0.0.x) for attack traffic
-- [ ] Set up VLANs or separate subnets for vulnerable VMs
-- [ ] Never run offensive tools against targets you don't own
-- [ ] Use Docker containers for disposable attack/target environments
-- [ ] Snapshot VMs before testing so you can roll back
-
-### Security Mode Aliases
+### Red Team Mode Alias
 ```bash
 # Add to ~/.bashrc on Jetson:
 alias recon='hackmode && echo "🔴 Red Team mode active - Dolphin loaded"'
-alias defend='codingmode && echo "🔵 Blue Team mode active - Qwen loaded"'
-alias purpleteam='hackmode && echo "🟣 Purple Team mode - full offense + defense"'
 ```
 
 ---
