@@ -1,378 +1,156 @@
-# 🎯 Jetson Orin Nano Super - AI Coding Machine Battle Plan
+# 🎯 Jetson Orin Nano Super - AI Coding Machine
 
-## The Vision
+## Architecture
 
-Build a dedicated AI coding assistant powered by the NVIDIA Jetson Orin Nano Super Developer Kit, interfaced with an ODROID-H3 desktop workstation. The Jetson handles all AI inference while the ODROID remains the primary development machine. Together they create a local, private, uncensored, subscription-free alternative to GitHub Copilot and Augment Code.
+**ODROID-H3** (32GB RAM, 1TB NVMe) - Development workstation running VS Code, Continue.dev, and Agent Zero
+**Jetson Orin Nano** (8GB RAM) - Dedicated AI model server running Ollama
 
----
-
-## Hardware Inventory
-
-### Machine 1: ODROID-H3 (Desktop Workstation)
-| Component | Details |
-|-----------|---------|
-| CPU | Intel Pentium Silver N6005 (4-core, 3.3GHz boost) |
-| RAM | 32GB DDR4 |
-| Storage | 1TB WD Blue SN570 NVMe (KEEP IN THIS MACHINE) |
-| Network | Dual 2.5GbE (RTL8125) - one port unused |
-| OS | Ubuntu 25.10 |
-| Role | Primary coding machine, VS Code, file storage |
-
-### Machine 2: Jetson Orin Nano Super (AI Brain)
-| Component | Details |
-|-----------|---------|
-| GPU | NVIDIA Ampere - 1024 CUDA cores, 32 Tensor cores |
-| AI Performance | 67 TOPS (INT8) |
-| CPU | 6-core ARM Cortex-A78AE |
-| RAM | 8GB LPDDR5 (shared CPU/GPU) @ 102 GB/s |
-| Storage | NEED TO BUY: 256GB+ NVMe SSD |
-| Power | 7W-25W configurable |
-| Role | Dedicated AI inference, Agent Zero, model serving |
-
-### Shopping List
-- [ ] NVMe SSD for Jetson (256GB minimum, 512GB ideal) - ~$25-40
-- [ ] Cat6 Ethernet cable (for direct ODROID-to-Jetson link) - ~$5-10
-- [ ] Active cooling fan/heatsink for Jetson (if not included) - ~$10-15
+Direct connection: 10.0.0.1 (ODROID) ↔ 10.0.0.2 (Jetson) via 2.5GbE
 
 ---
 
-## Network Architecture
+## Quick Reference
 
-```
-Internet
-   │
-   ▼
-[Router 192.168.12.x]
-   │
-   ├── ODROID-H3 enp1s0 (192.168.12.147) ── Main network + internet
-   │
-   └── Jetson Orin Nano (192.168.12.x) ──── Main network + internet
-          │
-          │ (Direct 2.5GbE cable - dedicated fast link)
-          │
-   ODROID-H3 enp2s0 ◄──────────────────────► Jetson eth1
-   (10.0.0.1)                                 (10.0.0.2)
+### URLs
+- **Agent Zero**: http://localhost:8080
+- **Jetson Ollama API**: http://10.0.0.2:11434
 
-Tailscale Mesh (backup + remote access):
-   ODROID:        100.66.226.32
-   Jetson:        (will be assigned on setup)
-   Home Assistant: 100.105.165.29
-```
-
-### Connection Methods (Priority Order)
-1. **Direct Ethernet** (10.0.0.x) - Fastest, for file sharing + API calls
-2. **LAN** (192.168.12.x) - Standard network access
-3. **Tailscale** - Backup, remote access, works from anywhere
-
----
-
-## Software Stack
-
-### Jetson Orin Nano Super
-```
-┌─────────────────────────────────────────┐
-│  JetPack 6.x (Ubuntu 22.04 based)      │
-├─────────────────────────────────────────┤
-│  Ollama (model serving)                 │
-│  ├── Qwen 2.5 Coder 7B (Q4_K_M)       │  ◄── Primary coding model
-│  ├── Dolphin Mistral 7B                 │  ◄── Uncensored general model
-│  └── Stable Diffusion 1.5              │  ◄── Image gen (swap in when needed)
-├─────────────────────────────────────────┤
-│  Agent Zero Framework                   │
-│  ├── Persistent memory (ChromaDB)       │
-│  ├── File access (NFS mount to ODROID)  │
-│  ├── SSH access to ODROID               │
-│  ├── Internet access                    │
-│  └── Command execution                  │
-├─────────────────────────────────────────┤
-│  Tailscale (mesh networking)            │
-│  SSH Server (for management)            │
-│  NFS Client (mount ODROID files)        │
-│  16GB Swap on NVMe                      │
-└─────────────────────────────────────────┘
-```
-
-### ODROID-H3 (Desktop)
-```
-┌─────────────────────────────────────────┐
-│  Ubuntu 25.10                           │
-├─────────────────────────────────────────┤
-│  VS Code                                │
-│  └── Continue.dev extension             │
-│      └── Points to Jetson Ollama API    │
-│          (http://10.0.0.2:11434)        │
-├─────────────────────────────────────────┤
-│  NFS Server (shares /home/morris)       │
-│  SSH Server (Agent Zero connects back)  │
-│  Tailscale (already installed)          │
-│  Docker (already installed)             │
-│  Samba (already installed, activate)    │
-└─────────────────────────────────────────┘
-```
-
----
-
-## AI Models Strategy
-
-### Primary: Qwen 2.5 Coder 7B Instruct (Q4_K_M quantization)
-- **Purpose**: Day-to-day coding assistant (Copilot replacement)
-- **Size**: ~4.5GB in RAM
-- **Strengths**: Python, C++, Java, Shell, HTML - all your languages
-- **Used by**: Continue.dev (autocomplete + chat) and Agent Zero
-
-### Secondary: Dolphin Mistral 7B (uncensored)
-- **Purpose**: Unrestricted general assistant, security research, creative tasks
-- **Size**: ~4.5GB in RAM
-- **Strengths**: Zero refusals, strong reasoning, good at everything
-- **Used by**: Agent Zero for tasks that censored models refuse
-
-### Optional: Stable Diffusion 1.5 (uncensored fine-tunes)
-- **Purpose**: Image generation when you want it
-- **Size**: ~2-3GB in RAM
-- **Note**: Must swap out coding model first, ~30-60 sec per image
-- **Used by**: Swap in on demand with a simple command
-
-### Model Swapping
+### SSH
 ```bash
-# Quick aliases to set up:
+ssh jetson@10.0.0.2
+```
+
+### Model Management (on Jetson)
+```bash
+# Switch models
+codingmode   # Qwen 2.5 Coder 7B
+hackmode     # Dolphin Mistral (uncensored)
+artmode      # Stable Diffusion
+
+# Check status
+ollama ps
+ollama stop <model-name>
+```
+
+### Agent Zero (on ODROID)
+```bash
+sudo systemctl start agent-zero
+sudo systemctl status agent-zero
+journalctl -u agent-zero -f
+```
+
+---
+
+## Setup Checklist
+
+### Hardware
+- [ ] Buy NVMe SSD for Jetson (256-512GB) - ~$25-40
+- [ ] Buy Cat6 ethernet cable - ~$5-10
+- [ ] Install NVMe into Jetson
+- [ ] Flash JetPack 6.x onto Jetson
+
+### Network
+- [ ] Connect direct ethernet: ODROID enp2s0 ↔ Jetson
+- [ ] Configure static IPs (10.0.0.1 / 10.0.0.2)
+- [ ] Install Tailscale on Jetson
+- [ ] Test connectivity: `ping 10.0.0.2`
+
+### Jetson Setup
+- [ ] Install Ollama (ARM64/CUDA)
+- [ ] Download Qwen 2.5 Coder 7B (Q4_K_M)
+- [ ] Download Dolphin Mistral 7B
+- [ ] Configure Ollama to listen on 0.0.0.0:11434
+- [ ] Set Ollama to start on boot (systemd)
+- [ ] Test API: `curl http://10.0.0.2:11434/api/tags`
+
+### ODROID Setup
+- [ ] Clone Agent Zero: `git clone https://github.com/morrisraybrooks/Agent-Zero.git ~/agent-zero`
+- [ ] Install dependencies: `cd ~/agent-zero && pip install -r requirements.txt`
+- [ ] Configure Agent Zero (see config below)
+- [ ] Set up systemd service (see config below)
+- [ ] Install Continue.dev in VS Code
+- [ ] Configure Continue.dev to use http://10.0.0.2:11434
+
+---
+
+## Agent Zero Configuration
+
+### `~/agent-zero/.env`
+```bash
+OLLAMA_API_BASE=http://10.0.0.2:11434
+OLLAMA_MODEL_CODING=qwen2.5-coder:7b-instruct-q4_K_M
+OLLAMA_MODEL_UNCENSORED=dolphin-mistral
+CHROMADB_PATH=/home/morris/agent-zero/chromadb
+WORKSPACE_PATH=/home/morris/workspace
+WEB_UI_PORT=8080
+WEB_UI_HOST=0.0.0.0
+ENABLE_FILE_TOOLS=true
+ENABLE_COMMAND_TOOLS=true
+ENABLE_WEB_TOOLS=true
+ENABLE_CODE_TOOLS=true
+```
+
+### `/etc/systemd/system/agent-zero.service`
+```ini
+[Unit]
+Description=Agent Zero AI Framework
+After=network.target
+
+[Service]
+Type=simple
+User=morris
+WorkingDirectory=/home/morris/agent-zero
+ExecStart=/usr/bin/python3 /home/morris/agent-zero/run.py
+Restart=always
+RestartSec=10
+Environment="PATH=/usr/local/bin:/usr/bin:/bin"
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable: `sudo systemctl daemon-reload && sudo systemctl enable agent-zero`
+
+---
+
+## Bash Aliases
+
+### Jetson (~/.bashrc)
+```bash
 alias codingmode='ollama stop dolphin-mistral 2>/dev/null; ollama run qwen2.5-coder:7b-instruct-q4_K_M'
 alias hackmode='ollama stop qwen2.5-coder 2>/dev/null; ollama run dolphin-mistral'
 alias artmode='ollama stop qwen2.5-coder 2>/dev/null; ollama stop dolphin-mistral 2>/dev/null; ollama run stable-diffusion'
 ```
 
----
-
-## Agent Zero Capabilities
-
-Once set up, Agent Zero on the Jetson will be able to:
-
-| Capability | How |
-|-----------|-----|
-| **Read your files** | NFS mount of ODROID /home/morris |
-| **Edit your files** | Direct file write over NFS |
-| **Run commands on ODROID** | SSH from Jetson → ODROID |
-| **Run commands on Jetson** | Local terminal execution |
-| **Browse the internet** | Direct internet access |
-| **Search the web** | Built-in web search tools |
-| **Remember everything** | ChromaDB persistent vector memory |
-| **Know your projects** | RAG indexing of your codebase |
-| **Generate images** | Swap to SD model on demand |
-| **Penetration testing** | Uncensored model + full tool access |
-| **Build full projects** | Autonomous multi-file code generation |
-
----
-
-## Build Phases
-
-### Phase 1: Hardware Setup (Day 1)
-- [ ] Buy NVMe SSD for Jetson (256-512GB)
-- [ ] Buy Cat6 ethernet cable
-- [ ] Verify Jetson cooling solution
-- [ ] Install NVMe into Jetson
-- [ ] Flash JetPack 6.x onto Jetson
-- [ ] Boot and verify Jetson works
-- [ ] Set up partitions:
-  - 50GB - OS
-  - 16GB - Swap
-  - Remaining - Data/Models
-
-### Phase 2: Network Setup (Day 1-2)
-- [ ] Connect Jetson to router (get internet)
-- [ ] Connect direct ethernet cable: ODROID enp2s0 ↔ Jetson
-- [ ] Configure static IPs on direct link (10.0.0.1 / 10.0.0.2)
-- [ ] Install Tailscale on Jetson
-- [ ] Verify all three connection paths work
-- [ ] Enable SSH server on both machines
-- [ ] Test SSH both directions
-
-### Phase 3: File Sharing (Day 2)
-- [ ] Set up NFS server on ODROID (share /home/morris)
-- [ ] Mount ODROID files on Jetson via NFS
-- [ ] Test read/write from Jetson to ODROID files
-- [ ] Set up auto-mount on boot (fstab)
-- [ ] Verify permissions work correctly
-
-### Phase 4: AI Stack on Jetson (Day 2-3)
-- [ ] Install Ollama on Jetson (ARM64/CUDA)
-- [ ] Download Qwen 2.5 Coder 7B (Q4_K_M)
-- [ ] Download Dolphin Mistral 7B
-- [ ] Test model inference and speed
-- [ ] Benchmark tokens/sec
-- [ ] Set Ollama to start on boot
-- [ ] Configure Ollama to listen on all interfaces (0.0.0.0)
-- [ ] Test API access from ODROID (curl http://10.0.0.2:11434)
-
-### Phase 5: Agent Zero on Jetson (Day 3-4)
-- [ ] Clone Agent Zero repo to Jetson
-- [ ] Configure to use local Ollama (no API keys needed)
-- [ ] Set up persistent memory (ChromaDB)
-- [ ] Configure file access to ODROID mount
-- [ ] Configure SSH tool (Jetson → ODROID command execution)
-- [ ] Configure internet/web browsing tools
-- [ ] Set up uncensored system prompts
-- [ ] Test autonomous task completion
-- [ ] Set Agent Zero to start on boot
-
-### Phase 6: VS Code Integration on ODROID (Day 4)
-- [ ] Install Continue.dev extension in VS Code
-- [ ] Configure Continue.dev to point to Jetson Ollama API
-- [ ] Test inline autocomplete
-- [ ] Test chat sidebar
-- [ ] Test code actions (explain, refactor, debug)
-- [ ] Tune settings for best experience
-
-### Phase 7: Polish and Optimize (Day 5+)
-- [ ] Set up model swap aliases (codingmode/hackmode/artmode)
-- [ ] Index your existing projects into RAG (persistent memory)
-- [ ] Fine-tune Agent Zero prompts for your workflow
-- [ ] Set up monitoring (jtop on Jetson, resource usage)
-- [ ] Create startup scripts for everything
-- [ ] Test image generation (Stable Diffusion swap)
-- [ ] Stress test: run coding AI while working in VS Code
-- [ ] Document any issues and solutions
-
----
-
-## Daily Workflow (Once Built)
-
-```
-Morning:
-1. Both machines are already running (always on)
-2. Sit down at ODROID, open VS Code
-3. Continue.dev is already connected to Jetson
-4. Start coding with AI autocomplete
-
-Need help:
-1. Ask Continue.dev chat sidebar (quick questions)
-2. Open Agent Zero web UI for complex tasks
-3. "Build me a web scraper for X" → Agent Zero does it autonomously
-4. Agent Zero reads your files, writes code, runs tests
-
-Need uncensored:
-1. Switch to Dolphin model: `hackmode`
-2. Ask whatever you want
-3. Switch back: `codingmode`
-
-Need images:
-1. Switch to SD: `artmode`
-2. Generate whatever you want
-3. Switch back: `codingmode`
-
-Security research:
-1. Agent Zero + Dolphin model
-2. Full penetration testing toolkit
-3. No restrictions, no refusals
-```
-
----
-
-## 🔴 Red Team / Offensive Security Lab
-
-This setup doubles as a personal offensive security research lab. The Jetson runs uncensored models that won't refuse security-related requests, and Agent Zero already has a red team operative system prompt. No guardrails, no refusals, no lectures. Your hardware, your rules.
-
-### AI-Assisted Penetration Testing
-
-- Agent Zero + Dolphin Mistral = unrestricted pen test assistant
-- Generate exploit code, shellcode, payloads without refusals
-- Automate recon: "Scan this network and find every open service"
-- Write custom Nmap scripts, Metasploit modules, Burp extensions
-- Social engineering template generation (phishing emails, pretexting scripts)
-- AV/EDR evasion techniques and payload obfuscation
-- Reverse engineering assistance (binary analysis, decompilation guidance)
-- Wireless attack automation (WPA cracking, rogue AP deployment)
-
-### Offensive Tools to Install on Jetson/ODROID
-
-- [ ] Nmap (network scanning & enumeration)
-- [ ] Metasploit Framework (exploitation)
-- [ ] Burp Suite Community (web app testing)
-- [ ] SQLmap (SQL injection automation)
-- [ ] Hydra (brute force / credential testing)
-- [ ] Impacket (Windows protocol attacks)
-- [ ] Responder (LLMNR/NBT-NS poisoning)
-- [ ] Aircrack-ng (wireless security testing)
-- [ ] John the Ripper / Hashcat (password cracking)
-- [ ] Nikto (web server scanner)
-- [ ] Gobuster / ffuf (directory & DNS brute forcing)
-- [ ] Wireshark / tcpdump (packet analysis)
-- [ ] Scapy (custom packet crafting via Python)
-- [ ] Pwntools (exploit development framework)
-- [ ] BeEF (browser exploitation framework)
-- [ ] Cobalt Strike / Sliver (C2 frameworks)
-- [ ] Ghidra (reverse engineering)
-- [ ] Wifiphisher (wireless social engineering)
-- [ ] CrackMapExec (Active Directory attacks)
-- [ ] BloodHound (AD attack path mapping)
-
-### AI-Powered Attack Workflows
-
-```
-1. "Agent Zero, scan 192.168.12.0/24 and enumerate all services"
-   → Runs Nmap, parses output, identifies targets, suggests attack vectors
-
-2. "Find vulnerabilities in the web app at 192.168.12.50:8080"
-   → Runs Nikto + SQLmap + Gobuster, chains findings into exploit path
-
-3. "Write a Python reverse shell that evades Windows Defender"
-   → Dolphin Mistral generates it without refusal, suggests obfuscation
-
-4. "Crack these hashes from the database dump"
-   → Identifies hash type, runs John/Hashcat with optimal rules
-
-5. "Generate a spear-phishing email targeting an IT admin"
-   → Creates realistic template with payload suggestions
-
-6. "Build me a custom C2 implant in Python"
-   → Writes full agent with encrypted comms, persistence, exfil
-
-7. "Analyze this malware sample and explain what it does"
-   → Disassembles, identifies techniques, maps to MITRE ATT&CK
-
-8. "Crack this WPA2 handshake"
-   → Runs Aircrack-ng with wordlists, suggests hashcat rules
-```
-
-### Red Team Mode Alias
+### ODROID (~/.bashrc)
 ```bash
-# Add to ~/.bashrc on Jetson:
-alias recon='hackmode && echo "🔴 Red Team mode active - Dolphin loaded"'
+alias jetson='ssh jetson@10.0.0.2'
+alias agentweb='xdg-open http://localhost:8080'
 ```
 
 ---
 
-## Performance Expectations
+## Troubleshooting
 
-| Task | Expected Speed |
-|------|---------------|
-| Autocomplete (single line) | 1-3 seconds |
-| Chat response (paragraph) | 5-15 seconds |
-| Agent Zero task (build a script) | 1-5 minutes |
-| Image generation (512x512) | 30-60 seconds |
-| Model swap | 10-15 seconds |
-| File access over NFS | Near instant |
-| SSH command execution | < 1 second |
+### Can't connect to Jetson
+```bash
+ping 10.0.0.2
+curl http://10.0.0.2:11434/api/tags
+ssh jetson@10.0.0.2 'systemctl status ollama'
+```
 
----
+### Performance issues
+```bash
+# ODROID
+htop
+du -sh ~/agent-zero/chromadb
 
-## Cost Summary
+# Jetson
+ssh jetson@10.0.0.2 'jtop'
+```
 
-| Item | Cost |
-|------|------|
-| Jetson Orin Nano Super (already have) | $0 |
-| ODROID-H3 (already have) | $0 |
-| NVMe SSD 256-512GB (need to buy) | $25-40 |
-| Cat6 Ethernet cable (need to buy) | $5-10 |
-| Cooling (if needed) | $10-15 |
-| **Total** | **$40-65** |
-| Monthly subscription cost | **$0 forever** |
-
----
-
-## Notes
-
-- The ODROID stays as the primary workstation - don't rob its 1TB NVMe
-- The Jetson is a dedicated AI brain - headless or minimal UI
-- Tailscale gives you access from anywhere (phone, laptop, etc.)
-- All models are uncensored - your hardware, your rules
-- Agent Zero has full system access - files, commands, internet, memory
-- This setup can grow: add more Jetsons, bigger models, fine-tuning later
+### Test Ollama API
+```bash
+curl -X POST http://10.0.0.2:11434/api/generate \
+  -d '{"model": "qwen2.5-coder:7b-instruct-q4_K_M", "prompt": "Hello", "stream": false}'
+```
