@@ -47,7 +47,7 @@ journalctl -u agent-zero -f
 - [ ] Buy NVMe SSD for Jetson (256-512GB) - ~$25-40
 - [ ] Buy Cat6 ethernet cable - ~$5-10
 - [ ] Install NVMe into Jetson
-- [ ] Flash JetPack 6.x onto Jetson
+- [ ] Flash JetPack 6.2 onto Jetson
 
 ### Network
 - [ ] Connect direct ethernet: ODROID enp2s0 ↔ Jetson
